@@ -1,0 +1,34 @@
+name: Daily Gold Price Report
+
+on:
+  schedule:
+    # 08:00 Asia/Ho_Chi_Minh (UTC+7) == 01:00 UTC, every day.
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browser (JS-rendering fallback)
+        run: playwright install --with-deps chromium
+
+      - name: Run gold price bot
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python src/main.py
