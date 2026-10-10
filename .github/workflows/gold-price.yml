@@ -10,6 +10,11 @@ jobs:
   report:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
+    concurrency:
+      group: gold-price-${{ github.ref }}
+      cancel-in-progress: false
 
     steps:
       - name: Check out repository
@@ -32,3 +37,21 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python src/main.py
+
+      - name: Record successful run
+        run: python src/write_run_metadata.py data/last-success.json
+
+      - name: Commit and push run metadata
+        env:
+          TARGET_BRANCH: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/last-success.json
+          if git diff --cached --quiet; then
+            echo "Run metadata is already up to date."
+            exit 0
+          fi
+          git commit -m "chore: record successful gold report run"
+          git pull --rebase origin "$TARGET_BRANCH"
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"

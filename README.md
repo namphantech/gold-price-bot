@@ -35,7 +35,10 @@ sends a formatted report to a Telegram chat, once a day via GitHub Actions.
 │   ├── config.py            # Constants + environment variable loading
 │   ├── scraper.py           # requests/BeautifulSoup scraping + Playwright fallback
 │   ├── telegram.py          # Report formatting + Telegram Bot API delivery
-│   └── main.py              # Entry point / orchestration
+│   ├── main.py              # Entry point / orchestration
+│   └── write_run_metadata.py # Successful run metadata for GitHub Actions
+├── data/
+│   └── last-success.json    # Generated after the first successful workflow run
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -100,9 +103,14 @@ automatically.
 - Installs dependencies from `requirements.txt` and the Playwright Chromium
   browser (used only if the JavaScript-rendering fallback is needed).
 - Runs `python src/main.py` with the two secrets injected as environment
-  variables.
-- Fails the job (non-zero exit) if scraping or sending the report fails, so
-  you'll see a red ❌ in the Actions tab instead of a silent skip.
+  variables. After a successful Telegram delivery, it records the Vietnam
+  calendar date, UTC timestamp, and Actions run URL in `data/last-success.json`,
+  then commits and pushes that file to the branch that ran the workflow.
+- Uses the workflow `GITHUB_TOKEN` with `contents: write`; the token and
+  Telegram credentials are never written to the metadata file. The target
+  branch must allow GitHub Actions to push commits.
+- Fails the job (non-zero exit) if scraping, sending the report, or pushing
+  the metadata fails, so you'll see a red ❌ in the Actions tab.
 
 ## Example report
 
